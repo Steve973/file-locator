@@ -56,7 +56,4 @@ public final class FileEntry {
 
     @Builder.Default
     private long size = 0;
-
-    @Builder.Default
-    private String failureMessage = null;
 }
