@@ -1,0 +1,26 @@
+arangodb:
+  spring:
+    data:
+      hosts: localhost:8529
+      user: root
+      password: test123
+      database: file-system-entries
+file-locator:
+  skip-paths: >-
+    /afs,
+    /media,
+    /mnt,
+    /net,
+    /sfs,
+    /tmp,
+    /udev,
+    /var/cache,
+    /var/lib/pacman/local,
+    /var/lock,
+    /var/run,
+    /var/spool,
+    /var/tmp,
+    /boot,
+    /proc,
+    /run
+
