@@ -58,8 +58,5 @@ public final class FileEntry {
     private long size = 0;
 
     @Builder.Default
-    private boolean failed = false;
-
-    @Builder.Default
     private String failureMessage = null;
 }
