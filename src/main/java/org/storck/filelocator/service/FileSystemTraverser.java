@@ -8,12 +8,15 @@ import org.springframework.stereotype.Service;
 import org.storck.filelocator.model.FileEntry;
 import org.storck.filelocator.repository.FileEntryRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
@@ -35,6 +38,16 @@ public class FileSystemTraverser implements FileVisitor<Path> {
         this.fileEntryRepository = fileEntryRepository;
         this.skipPaths = skipPaths;
         arangoOperations.collection(collectionName).drop();
+    }
+
+    public void updateFileDatabase() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                Files.walkFileTree(new File("/").toPath(), this);
+            } catch (IOException e) {
+                log.error("Error encountered when updating file database", e);
+            }
+        });
     }
 
     public int getNumVisited() {

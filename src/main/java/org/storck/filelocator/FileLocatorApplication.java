@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class FileLocatorApplication {
 
     public static void main(final String... args) {
-        Class<?>[] runner = new Class<?>[]{FileVisitRunner.class};
-        System.exit(SpringApplication.exit(SpringApplication.run(runner, args)));
+        SpringApplication.run(FileLocatorApplication.class, args);
     }
 }
