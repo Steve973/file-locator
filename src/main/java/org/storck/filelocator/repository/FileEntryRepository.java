@@ -19,4 +19,6 @@ public interface FileEntryRepository extends ArangoRepository<FileEntry, String>
     Collection<FileEntry> findByNameEndingWithIgnoreCase(String text);
 
     Collection<FileEntry> findByNameMatchesRegex(String text);
+
+    Collection<FileEntry> findByPathIsAndNameIs(String path, String name);
 }

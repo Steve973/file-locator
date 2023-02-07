@@ -1,11 +1,21 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '2.7.8'
-	id 'io.spring.dependency-management' version '1.1.0'
 }
 
+apply plugin: 'io.spring.dependency-management'
+
+dependencyManagement {
+	imports {
+		mavenBom SpringBootPlugin.BOM_COORDINATES
+	}
+}
+
+
 group = 'org.storck'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0-SNAPSHOT'
 sourceCompatibility = '17'
 
 configurations {
@@ -29,6 +39,20 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named("bootJar") {
+	layered {
+		enabled = true
+		includeLayerTools = true
+	}
+}
+
+tasks.named("bootBuildImage") {
+	docker {
+		host = "${System.env.DOCKER_HOST}"
+		bindHostToBuilder = true
+	}
 }
 
 tasks.named('test') {

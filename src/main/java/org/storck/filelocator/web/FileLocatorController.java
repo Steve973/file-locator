@@ -2,28 +2,33 @@ package org.storck.filelocator.web;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Example;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.storck.filelocator.model.FileEntry;
 import org.storck.filelocator.repository.FileEntryRepository;
+import org.storck.filelocator.service.FileEntriesProcessor;
 import org.storck.filelocator.service.FileSystemTraverser;
 
 import java.util.Collection;
 
+@Slf4j
 @Tag(name = "file-locator")
 @RestController("/files")
 public class FileLocatorController {
 
     private final FileSystemTraverser fileSystemTraverser;
 
+    private final FileEntriesProcessor fileEntriesProcessor;
+
     private final FileEntryRepository fileEntryRepository;
 
-    public FileLocatorController(FileSystemTraverser fileSystemTraverser, FileEntryRepository fileEntryRepository) {
+    public FileLocatorController(FileSystemTraverser fileSystemTraverser, FileEntriesProcessor fileEntriesProcessor, FileEntryRepository fileEntryRepository) {
         this.fileSystemTraverser = fileSystemTraverser;
+        this.fileEntriesProcessor = fileEntriesProcessor;
         this.fileEntryRepository = fileEntryRepository;
     }
 
@@ -32,6 +37,28 @@ public class FileLocatorController {
     ResponseEntity<String> updateFileDb() {
         fileSystemTraverser.updateFileDatabase();
         return new ResponseEntity<>("Updating file database for user", HttpStatus.ACCEPTED);
+    }
+
+    @Operation
+    @PutMapping(path = "/graph")
+    ResponseEntity<String> processEntriesForRelations() {
+        fileEntriesProcessor.processForRelationships();
+        return new ResponseEntity<>("Processing entries for file system relationships", HttpStatus.ACCEPTED);
+    }
+
+    @Operation
+    @PostMapping(path = "/example", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<FileEntry> findByExampleNameAndPath(@RequestBody FileEntry example) {
+        FileEntry result = fileEntryRepository.findOne(Example.of(example)).orElse(example);
+        return new ResponseEntity<>(result, HttpStatus.ACCEPTED);
+    }
+
+    @Operation
+    @GetMapping(path = "/example")
+    ResponseEntity<Collection<FileEntry>> findByPathAndName(@RequestParam String path, @RequestParam String name) {
+        log.info("path: {}, name: {}", path, name);
+        Collection<FileEntry> result = fileEntryRepository.findByPathIsAndNameIs(path, name);
+        return new ResponseEntity<>(result, HttpStatus.ACCEPTED);
     }
 
     @Operation

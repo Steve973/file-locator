@@ -22,6 +22,11 @@ public class AppConfig {
         return System.getProperty("user.name");
     }
 
+    @Bean(name = "edgeCollectionName")
+    String edgeCollectionName() {
+        return "%s_file_relation".formatted(System.getProperty("user.name"));
+    }
+
     @Bean(name = "skipPaths")
     List<String> skipPaths(@Value("${file-locator.skip-paths}") List<String> skipPaths) {
         return skipPaths;

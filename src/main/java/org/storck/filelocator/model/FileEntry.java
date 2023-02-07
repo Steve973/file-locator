@@ -2,18 +2,21 @@ package org.storck.filelocator.model;
 
 import com.arangodb.springframework.annotation.ArangoId;
 import com.arangodb.springframework.annotation.Document;
+import com.arangodb.springframework.annotation.Relations;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 
+import java.util.Collection;
+
 @Data
-@Builder
+@SuperBuilder
 @Document(collection = "#{@collectionName}")
 @NoArgsConstructor
 @AllArgsConstructor
-public final class FileEntry {
+public abstract class FileEntry {
 
     /**
      * db document field: _key
@@ -27,33 +30,21 @@ public final class FileEntry {
     @ArangoId
     private String arangoId;
 
-    @Builder.Default
-    private String name = "unknown";
+    private String name;
 
-    @Builder.Default
-    private String path = "unknown";
+    private String path;
 
-    @Builder.Default
-    private long lastModifiedTime = 0;
+    private Long lastModifiedTime;
 
-    @Builder.Default
-    private long lastAccessTime = 0;
+    private Long lastAccessTime;
 
-    @Builder.Default
-    private long creationTime = 0;
+    private Long creationTime;
 
-    @Builder.Default
-    private boolean isRegularFile = false;
+    private Long size;
 
-    @Builder.Default
-    private boolean isDirectory = false;
+    @Relations(edges = Relation.class, direction = Relations.Direction.INBOUND, lazy = true)
+    private Collection<FileEntry> parent;
 
-    @Builder.Default
-    private boolean isSymbolicLink = false;
-
-    @Builder.Default
-    private boolean isOther = false;
-
-    @Builder.Default
-    private long size = 0;
+    @Relations(edges = Relation.class, direction = Relations.Direction.OUTBOUND, lazy = true)
+    private Collection<FileEntry> children;
 }

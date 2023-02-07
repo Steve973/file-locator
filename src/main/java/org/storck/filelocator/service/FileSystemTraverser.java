@@ -3,17 +3,14 @@ package org.storck.filelocator.service;
 import com.arangodb.springframework.core.ArangoOperations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.storck.filelocator.model.FileEntry;
+import org.springframework.util.StringUtils;
+import org.storck.filelocator.model.*;
 import org.storck.filelocator.repository.FileEntryRepository;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -29,18 +26,24 @@ public class FileSystemTraverser implements FileVisitor<Path> {
 
     private final Collection<String> skipPaths;
 
+    private final String collectionName;
+
     private final FileEntryRepository fileEntryRepository;
+
+    private final ArangoOperations arangoOperations;
 
     protected FileSystemTraverser(final FileEntryRepository fileEntryRepository,
                                   final ArangoOperations arangoOperations,
                                   @Qualifier("skipPaths") final Collection<String> skipPaths,
                                   @Qualifier("collectionName") final String collectionName) {
         this.fileEntryRepository = fileEntryRepository;
+        this.arangoOperations = arangoOperations;
         this.skipPaths = skipPaths;
-        arangoOperations.collection(collectionName).drop();
+        this.collectionName = collectionName;
     }
 
     public void updateFileDatabase() {
+        arangoOperations.collection(collectionName).drop();
         CompletableFuture.runAsync(() -> {
             try {
                 Files.walkFileTree(new File("/").toPath(), this);
@@ -56,32 +59,71 @@ public class FileSystemTraverser implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-        return (!dir.toFile().canRead() || skipPaths.stream().anyMatch(sp -> dir.toFile().getAbsolutePath().startsWith(sp))) ?
-                SKIP_SUBTREE : CONTINUE;
+        if (!dir.toFile().canRead() || skipPaths.stream().anyMatch(sp -> dir.toFile().getAbsolutePath().startsWith(sp))) {
+            return SKIP_SUBTREE;
+        } else {
+            return visitFile(dir, attrs);
+        }
     }
 
     @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-        numVisited++;
-        if (file == null) {
-            log.warn("Skipping null file");
-        } else if (attrs == null) {
-            visitFileFailed(file, new IOException("Could not read file attributes"));
-        } else {
-            if (file.toFile().canRead()) {
-                FileEntry fileEntry = FileEntry.builder()
-                        .name(file.getFileName().toString())
-                        .path(file.getParent().toString())
-                        .isRegularFile(attrs.isRegularFile())
-                        .isDirectory(attrs.isDirectory())
-                        .isOther(attrs.isOther())
-                        .creationTime(attrs.creationTime().toMillis())
-                        .lastAccessTime(attrs.lastAccessTime().toMillis())
-                        .lastModifiedTime(attrs.lastModifiedTime().toMillis())
-                        .size(attrs.size())
-                        .build();
-                fileEntryRepository.save(fileEntry);
+    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+        try {
+            numVisited++;
+            if (path == null) {
+                log.warn("Skipping null file");
+            } else if (attrs == null) {
+                visitFileFailed(path, new IOException("Could not read file attributes"));
+            } else {
+                File file = path.toFile();
+                if (file.canRead()) {
+                    FileEntry fileEntry = null;
+                    File parent = file.getParentFile();
+                    String name = file.getName();
+                    if (attrs.isDirectory()) {
+                        fileEntry = DirectoryNode.builder()
+                                .name(parent == null && !StringUtils.hasText(name) ? "/": name)
+                                .path(parent != null ? parent.getPath() : "")
+                                .creationTime(attrs.creationTime().toMillis())
+                                .lastAccessTime(attrs.lastAccessTime().toMillis())
+                                .lastModifiedTime(attrs.lastModifiedTime().toMillis())
+                                .size(attrs.size())
+                                .build();
+                    } else if (attrs.isSymbolicLink()) {
+                        fileEntry = LinkNode.builder()
+                                .name(name)
+                                .path(parent.getPath())
+                                .creationTime(attrs.creationTime().toMillis())
+                                .lastAccessTime(attrs.lastAccessTime().toMillis())
+                                .lastModifiedTime(attrs.lastModifiedTime().toMillis())
+                                .size(attrs.size())
+                                .build();
+                    } else if (attrs.isRegularFile()) {
+                        fileEntry = FileNode.builder()
+                                .name(name)
+                                .path(parent.getPath())
+                                .creationTime(attrs.creationTime().toMillis())
+                                .lastAccessTime(attrs.lastAccessTime().toMillis())
+                                .lastModifiedTime(attrs.lastModifiedTime().toMillis())
+                                .size(attrs.size())
+                                .build();
+                    } else if (attrs.isOther()) {
+                        fileEntry = OtherNode.builder()
+                                .name(name)
+                                .path(parent.getPath())
+                                .creationTime(attrs.creationTime().toMillis())
+                                .lastAccessTime(attrs.lastAccessTime().toMillis())
+                                .lastModifiedTime(attrs.lastModifiedTime().toMillis())
+                                .size(attrs.size())
+                                .build();
+                    }
+                    if (fileEntry != null) {
+                        fileEntryRepository.save(fileEntry);
+                    }
+                }
             }
+        } catch (Exception e) {
+            log.warn("Unexpected error when processing file", e);
         }
         return CONTINUE;
     }
