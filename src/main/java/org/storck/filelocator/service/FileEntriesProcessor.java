@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -78,15 +79,21 @@ public class FileEntriesProcessor {
         return Mono.just(result);
     };
 
+    private static final BiFunction<Collection<Relation>, FileRelationRepository, Mono<Void>> saveEdges = (edges, repo) -> {
+        repo.saveAll(edges);
+        return Mono.empty();
+    };
+
     public void processForRelationships() {
         Flux.fromIterable(fileEntryRepository.findAll())
-                .subscribeOn(Schedulers.boundedElastic())
+                .parallel()
+                .runOn(Schedulers.boundedElastic())
                 .flatMap(fe -> createEdge.apply(fe, fileEntryRepository))
                 .filter(r -> r.getFrom() != null && r.getTo() != null)
+                .sequential()
                 .buffer(1000)
-                .map(fileRelationRepository::saveAll)
+                .handle((relations, synchronousSink) -> saveEdges.apply(relations, fileRelationRepository))
                 .doOnNext(it -> log.info("Batch complete"))
-                .then()
-                .subscribe();
+                .blockLast();
     }
 }
