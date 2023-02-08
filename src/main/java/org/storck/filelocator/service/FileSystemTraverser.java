@@ -22,6 +22,8 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 @Service
 public class FileSystemTraverser implements FileVisitor<Path> {
 
+    public static final String ROOT_PARENT = "<N/A>";
+
     private int numVisited = 0;
 
     private final Collection<String> skipPaths;
@@ -79,11 +81,12 @@ public class FileSystemTraverser implements FileVisitor<Path> {
                 if (file.canRead()) {
                     FileEntry fileEntry = null;
                     File parent = file.getParentFile();
+                    String parentPath = parent != null ? parent.getAbsolutePath() : ROOT_PARENT;
                     String name = file.getName();
                     if (attrs.isDirectory()) {
                         fileEntry = DirectoryNode.builder()
                                 .name(parent == null && !StringUtils.hasText(name) ? "/": name)
-                                .path(parent != null ? parent.getPath() : "")
+                                .path(parentPath)
                                 .creationTime(attrs.creationTime().toMillis())
                                 .lastAccessTime(attrs.lastAccessTime().toMillis())
                                 .lastModifiedTime(attrs.lastModifiedTime().toMillis())
@@ -92,7 +95,7 @@ public class FileSystemTraverser implements FileVisitor<Path> {
                     } else if (attrs.isSymbolicLink()) {
                         fileEntry = LinkNode.builder()
                                 .name(name)
-                                .path(parent.getPath())
+                                .path(parentPath)
                                 .creationTime(attrs.creationTime().toMillis())
                                 .lastAccessTime(attrs.lastAccessTime().toMillis())
                                 .lastModifiedTime(attrs.lastModifiedTime().toMillis())
@@ -101,7 +104,7 @@ public class FileSystemTraverser implements FileVisitor<Path> {
                     } else if (attrs.isRegularFile()) {
                         fileEntry = FileNode.builder()
                                 .name(name)
-                                .path(parent.getPath())
+                                .path(parentPath)
                                 .creationTime(attrs.creationTime().toMillis())
                                 .lastAccessTime(attrs.lastAccessTime().toMillis())
                                 .lastModifiedTime(attrs.lastModifiedTime().toMillis())
@@ -110,7 +113,7 @@ public class FileSystemTraverser implements FileVisitor<Path> {
                     } else if (attrs.isOther()) {
                         fileEntry = OtherNode.builder()
                                 .name(name)
-                                .path(parent.getPath())
+                                .path(parentPath)
                                 .creationTime(attrs.creationTime().toMillis())
                                 .lastAccessTime(attrs.lastAccessTime().toMillis())
                                 .lastModifiedTime(attrs.lastModifiedTime().toMillis())

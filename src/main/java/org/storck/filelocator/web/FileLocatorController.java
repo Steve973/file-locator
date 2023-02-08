@@ -55,9 +55,9 @@ public class FileLocatorController {
 
     @Operation
     @GetMapping(path = "/example")
-    ResponseEntity<Collection<FileEntry>> findByPathAndName(@RequestParam String path, @RequestParam String name) {
+    ResponseEntity<FileEntry> findByPathAndName(@RequestParam String path, @RequestParam String name) {
         log.info("path: {}, name: {}", path, name);
-        Collection<FileEntry> result = fileEntryRepository.findByPathIsAndNameIs(path, name);
+        FileEntry result = fileEntryRepository.findOneByPathIsAndNameIs(path, name);
         return new ResponseEntity<>(result, HttpStatus.ACCEPTED);
     }
 
