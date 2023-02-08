@@ -8,6 +8,7 @@ import org.storck.filelocator.model.Relation;
 import org.storck.filelocator.repository.FileEntryRepository;
 import org.storck.filelocator.repository.FileRelationRepository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Arrays;
@@ -32,13 +33,13 @@ public class FileEntriesProcessor {
         this.fileRelationRepository = fileRelationRepository;
     }
 
-    private static final BiFunction<FileEntry, FileEntryRepository, Relation> createEdge = (fileEntry, repo) -> {
-        Relation result = null;
+    private static final BiFunction<FileEntry, FileEntryRepository, Mono<Relation>> createEdge = (fileEntry, repo) -> {
+        Relation result = new Relation();
         try {
             String fileEntryPath = fileEntry.getPath();
             if (fileEntryPath.equals(ROOT_PARENT)) {
                 // since there is no parent for the root directory, skip this entry
-                return null;
+                return Mono.just(new Relation());
             }
             // Splitting a string when the delimiter is the first character causes a problem of
             // the first element of the array being empty, so we can solve this issue by prepending
@@ -69,18 +70,19 @@ public class FileEntriesProcessor {
                     .orElseGet(() -> {
                         log.info("Could not create a parent relationship to fileEntryPath: {}, fileEntryName: {}",
                                 fileEntryPath, fileEntry.getName());
-                        return null;
+                        return new Relation();
                     });
         } catch (Exception e) {
             log.warn("Error when trying to create file system relationship: {}", e.getLocalizedMessage());
         }
-        return result;
+        return Mono.just(result);
     };
 
     public void processForRelationships() {
         Flux.fromIterable(fileEntryRepository.findAll())
                 .subscribeOn(Schedulers.boundedElastic())
-                .mapNotNull(fe -> createEdge.apply(fe, fileEntryRepository))
+                .flatMap(fe -> createEdge.apply(fe, fileEntryRepository))
+                .filter(r -> r.getFrom() != null && r.getTo() != null)
                 .buffer(1000)
                 .map(fileRelationRepository::saveAll)
                 .doOnNext(it -> log.info("Batch complete"))
