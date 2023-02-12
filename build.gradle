@@ -50,6 +50,10 @@ tasks.named("bootJar") {
 	}
 }
 
+tasks.named("bootRun") {
+	jvmArgs = ['-Xms4g', '-Xmx8g']
+}
+
 tasks.named("bootBuildImage") {
 	docker {
 		host = "${System.env.DOCKER_HOST}"

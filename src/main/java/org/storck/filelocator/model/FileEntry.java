@@ -1,8 +1,6 @@
 package org.storck.filelocator.model;
 
-import com.arangodb.springframework.annotation.ArangoId;
-import com.arangodb.springframework.annotation.Document;
-import com.arangodb.springframework.annotation.Relations;
+import com.arangodb.springframework.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,9 +11,9 @@ import java.util.Collection;
 
 @Data
 @SuperBuilder
-@Document(collection = "#{@collectionName}")
 @NoArgsConstructor
 @AllArgsConstructor
+@Document(collection = "#{@collectionName}")
 public abstract class FileEntry {
 
     /**
@@ -30,8 +28,12 @@ public abstract class FileEntry {
     @ArangoId
     private String arangoId;
 
+    @FulltextIndexed
+    @PersistentIndexed
     private String name;
 
+    @FulltextIndexed
+    @PersistentIndexed
     private String path;
 
     private Long lastModifiedTime;

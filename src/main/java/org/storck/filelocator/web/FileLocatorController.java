@@ -35,8 +35,8 @@ public class FileLocatorController {
     @Operation
     @PutMapping(path = "/updatedb")
     ResponseEntity<String> updateFileDb() {
-        fileSystemTraverser.updateFileDatabase();
-        return new ResponseEntity<>("Updating file database for user", HttpStatus.ACCEPTED);
+        String result = fileSystemTraverser.updateFileDatabase();
+        return new ResponseEntity<>("Database updated: " + result, HttpStatus.ACCEPTED);
     }
 
     @Operation

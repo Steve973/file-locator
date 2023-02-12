@@ -74,7 +74,7 @@ public class FileEntriesProcessor {
                 .flatMap(fe -> Mono.fromCallable(() -> createEdge.apply(fe, fileEntryRepository))
                         .subscribeOn(Schedulers.boundedElastic())
                         .filter(r -> r.getFrom() != null && r.getTo() != null))
-                .buffer(1000)
+                .buffer(10000)
                 .handle((relations, synchronousSink) -> saveEdges.accept(relations, fileRelationRepository))
                 .blockLast();
     }
