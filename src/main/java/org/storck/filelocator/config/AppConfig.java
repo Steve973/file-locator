@@ -2,7 +2,6 @@ package org.storck.filelocator.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +22,7 @@ public class AppConfig {
 
     @Bean(name = "edgeCollectionName")
     String edgeCollectionName() {
-        return "%s_file_relation".formatted(System.getProperty("user.name"));
+        return "file-relation";
     }
 
     @Bean(name = "skipPaths")
@@ -32,12 +31,11 @@ public class AppConfig {
     }
 
     @Bean
-    public OpenAPI springShopOpenAPI() {
+    public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info().title("File Locator API")
                         .description("File Locator application")
-                        .version("v1")
-                        .license(new License().name("Apache 2.0").url("http://springdoc.org")));
+                        .version("v1"));
     }
 
 }

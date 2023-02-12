@@ -15,7 +15,8 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
@@ -28,9 +29,11 @@ public class FileSystemTraverser implements FileVisitor<Path> {
 
     int count = 0;
 
-    private final Collection<String> skipPaths;
+    private final List<String> skipPaths = new ArrayList<>();
 
     private final String collectionName;
+
+    private final SkipPathListGenerator skipPathListGenerator;
 
     private final FileEntryRepository fileEntryRepository;
 
@@ -38,17 +41,19 @@ public class FileSystemTraverser implements FileVisitor<Path> {
 
     protected FileSystemTraverser(final FileEntryRepository fileEntryRepository,
                                   final ArangoOperations arangoOperations,
-                                  @Qualifier("skipPaths") final Collection<String> skipPaths,
-                                  @Qualifier("collectionName") final String collectionName) {
+                                  @Qualifier("collectionName") final String collectionName,
+                                  SkipPathListGenerator skipPathListGenerator) {
         this.fileEntryRepository = fileEntryRepository;
         this.arangoOperations = arangoOperations;
-        this.skipPaths = skipPaths;
         this.collectionName = collectionName;
+        this.skipPathListGenerator = skipPathListGenerator;
     }
 
     public String updateFileDatabase() {
         long start = System.currentTimeMillis();
         arangoOperations.collection(collectionName).drop();
+        skipPaths.clear();
+        skipPaths.addAll(skipPathListGenerator.generateSkipPathList());
         try {
             Files.walkFileTree(new File("/").toPath(), this);
         } catch (IOException e) {
@@ -59,13 +64,9 @@ public class FileSystemTraverser implements FileVisitor<Path> {
     }
 
     @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+    public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes attrs) {
         try {
-            if (skipPaths.parallelStream().anyMatch(dir::startsWith) || !dir.toFile().canRead()) {
-                return SKIP_SUBTREE;
-            } else {
-                return visitFile(dir, attrs);
-            }
+            return skipPaths.contains(path.toString()) ? SKIP_SUBTREE : visitFile(path, attrs);
         } catch (Exception e) {
             return SKIP_SUBTREE;
         }
@@ -114,17 +115,13 @@ public class FileSystemTraverser implements FileVisitor<Path> {
     }
 
     @Override
-    public FileVisitResult visitFileFailed(Path file, IOException exc) {
-        Throwable cause = exc.getCause();
-        log.warn("File visit failed: {} {}", exc.getLocalizedMessage(), cause != null ? cause.getLocalizedMessage() : "");
-        return CONTINUE;
+    public FileVisitResult visitFileFailed(Path path, IOException exc) {
+        log.warn("File visit failed: {}", path.toString());
+        return path.toFile().isDirectory() ? SKIP_SUBTREE : CONTINUE;
     }
 
     @Override
-    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-        if (exc != null) {
-            visitFileFailed(dir, exc);
-        }
+    public FileVisitResult postVisitDirectory(Path path, IOException exc) {
         return CONTINUE;
     }
 }
