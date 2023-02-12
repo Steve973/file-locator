@@ -1,6 +1,9 @@
 package org.storck.filelocator.model;
 
-import com.arangodb.springframework.annotation.*;
+import com.arangodb.springframework.annotation.ArangoId;
+import com.arangodb.springframework.annotation.Edge;
+import com.arangodb.springframework.annotation.From;
+import com.arangodb.springframework.annotation.To;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
