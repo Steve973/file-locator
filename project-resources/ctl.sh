@@ -69,45 +69,52 @@ init () {
 usage () {
 	echo "Starts/stops the File Locator application and ArangoDB."
 	echo -e "Usage: $0 [option]"
-	echo -e "Options:"
-	echo -e "  start:        Starts the app and ArangoDB"
-	echo -e "  stop:         Stops the app and ArangoDB"
-	echo -e "  startapp:     Starts the app"
-	echo -e "  startdb:      Starts ArangoDB"
-	echo -e "  stopapp:      Stops the app"
-	echo -e "  stopdb:       Staops ArangoDB"
+	echo -e 'Options:'
+	echo -e '  --start:         Starts the app and ArangoDB'
+	echo -e '  --stop:          Stops the app and ArangoDB'
+	echo -e '  --start-app:     Starts the app'
+	echo -e '  --start-db:      Starts ArangoDB'
+	echo -e '  --stop-app:      Stops the app'
+	echo -e '  --stop-db:       Staops ArangoDB'
+}
+
+process_action () {
+  TEMP=$(getopt -o hspadxy --long help,start,stop,start-app,start-db,stop-app,stop-db -- "$1")
+  eval set -- "$TEMP"
+  local action='--help'
+  case "$1" in
+    -s|--start)
+      action='init && start'
+      ;;
+    -p|--stop)
+      action='init && stop'
+      ;;
+    -a|--start-app)
+      action='init && start_app'
+      ;;
+    -d|--start-db)
+      action='init && start_arango'
+      ;;
+    -x|--stop-app)
+      action='init && stop_app'
+      ;;
+    -y|--stop-db)
+      action='init && stop_arango'
+      ;;
+    -h|--help)
+      ;&
+    *)
+      action='usage && exit 1'
+      ;;
+  esac
+  echo "${action}"
 }
 
 main () {
   start_dir=$(pwd)
   pushd "$(dirname "$0")" > /dev/null || echo "Could not switch to program dir"
-  case "${1}" in
-    'start')
-      action='start'
-      ;;
-    'startapp')
-      action='start_app'
-      ;;
-    'startdb')
-      action='start_arango'
-      ;;
-    'stop')
-      action='stop'
-      ;;
-    'stop_app')
-      action='stop_app'
-      ;;
-    'stop_db')
-      action='stop_arango'
-      ;;
-    *)
-      echo "Unrecognized option: ${1}"
-      usage
-      exit
-      ;;
-  esac
-  init
-  eval ${action}
+  action=$(process_action "$1")
+  eval "${action}"
   popd > /dev/null || echo "Could not return to original dir: ${start_dir}"
 }
 

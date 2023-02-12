@@ -12,6 +12,7 @@ import org.storck.filelocator.model.FileEntry;
 import org.storck.filelocator.repository.FileEntryRepository;
 import org.storck.filelocator.service.FileEntriesProcessor;
 import org.storck.filelocator.service.FileSystemTraverser;
+import org.storck.filelocator.service.ReactiveFileSystemTraverser;
 import org.storck.filelocator.service.SkipPathListGenerator;
 
 import java.util.Collection;
@@ -23,14 +24,21 @@ public class FileLocatorController {
 
     private final FileSystemTraverser fileSystemTraverser;
 
+    private final ReactiveFileSystemTraverser reactiveFileSystemTraverser;
+
     private final SkipPathListGenerator skipPathListGenerator;
 
     private final FileEntriesProcessor fileEntriesProcessor;
 
     private final FileEntryRepository fileEntryRepository;
 
-    public FileLocatorController(FileSystemTraverser fileSystemTraverser, SkipPathListGenerator skipPathListGenerator, FileEntriesProcessor fileEntriesProcessor, FileEntryRepository fileEntryRepository) {
+    public FileLocatorController(FileSystemTraverser fileSystemTraverser,
+                                 ReactiveFileSystemTraverser reactiveFileSystemTraverser,
+                                 SkipPathListGenerator skipPathListGenerator,
+                                 FileEntriesProcessor fileEntriesProcessor,
+                                 FileEntryRepository fileEntryRepository) {
         this.fileSystemTraverser = fileSystemTraverser;
+        this.reactiveFileSystemTraverser = reactiveFileSystemTraverser;
         this.skipPathListGenerator = skipPathListGenerator;
         this.fileEntriesProcessor = fileEntriesProcessor;
         this.fileEntryRepository = fileEntryRepository;
@@ -40,7 +48,14 @@ public class FileLocatorController {
     @PutMapping(path = "/updatedb")
     ResponseEntity<String> updateFileDb() {
         String result = fileSystemTraverser.updateFileDatabase();
-        return new ResponseEntity<>("Database updated: " + result, HttpStatus.ACCEPTED);
+        return new ResponseEntity<>("Database updated: " + result, HttpStatus.OK);
+    }
+
+    @Operation
+    @PutMapping(path = "/reacctive/updatedb")
+    ResponseEntity<String> updateFileDbReactive() {
+        String result = reactiveFileSystemTraverser.updateFileDatabase();
+        return new ResponseEntity<>("Database updated: " + result, HttpStatus.OK);
     }
 
     @Operation

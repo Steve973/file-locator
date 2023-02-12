@@ -72,6 +72,33 @@ public class FileSystemTraverser implements FileVisitor<Path> {
         }
     }
 
+    static FileEntry createFileEntry(File file, BasicFileAttributes attrs) {
+        FileEntry fileEntry = null;
+        FileEntry.FileEntryBuilder<?, ?> fileEntryBuilder = null;
+        if (attrs.isDirectory()) {
+            fileEntryBuilder = DirectoryNode.builder();
+        } else if (attrs.isSymbolicLink()) {
+            fileEntryBuilder = LinkNode.builder();
+        } else if (attrs.isRegularFile()) {
+            fileEntryBuilder = FileNode.builder();
+        } else if (attrs.isOther()) {
+            fileEntryBuilder = OtherNode.builder();
+        }
+        if (fileEntryBuilder != null) {
+            File parent = file.getParentFile();
+            String parentPath = parent != null ? parent.getAbsolutePath() : ROOT_PARENT;
+            String name = file.getName();
+            fileEntry = fileEntryBuilder.name(parent == null && !StringUtils.hasText(name) ? "/": name)
+                    .path(parentPath)
+                    .creationTime(attrs.creationTime().toMillis())
+                    .lastAccessTime(attrs.lastAccessTime().toMillis())
+                    .lastModifiedTime(attrs.lastModifiedTime().toMillis())
+                    .size(attrs.size())
+                    .build();
+        }
+        return fileEntry;
+    }
+
     @Override
     public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
         if (path == null || attrs == null) {
@@ -80,29 +107,7 @@ public class FileSystemTraverser implements FileVisitor<Path> {
         try {
             File file = path.toFile();
             if (file.canRead()) {
-                FileEntry fileEntry = null;
-                FileEntry.FileEntryBuilder<?, ?> fileEntryBuilder = null;
-                if (attrs.isDirectory()) {
-                    fileEntryBuilder = DirectoryNode.builder();
-                } else if (attrs.isSymbolicLink()) {
-                    fileEntryBuilder = LinkNode.builder();
-                } else if (attrs.isRegularFile()) {
-                    fileEntryBuilder = FileNode.builder();
-                } else if (attrs.isOther()) {
-                    fileEntryBuilder = OtherNode.builder();
-                }
-                if (fileEntryBuilder != null) {
-                    File parent = file.getParentFile();
-                    String parentPath = parent != null ? parent.getAbsolutePath() : ROOT_PARENT;
-                    String name = file.getName();
-                    fileEntry = fileEntryBuilder.name(parent == null && !StringUtils.hasText(name) ? "/": name)
-                            .path(parentPath)
-                            .creationTime(attrs.creationTime().toMillis())
-                            .lastAccessTime(attrs.lastAccessTime().toMillis())
-                            .lastModifiedTime(attrs.lastModifiedTime().toMillis())
-                            .size(attrs.size())
-                            .build();
-                }
+                FileEntry fileEntry = createFileEntry(file, attrs);
                 if (fileEntry != null) {
                     fileEntryRepository.save(fileEntry);
                     count++;
