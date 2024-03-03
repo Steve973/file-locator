@@ -11,15 +11,17 @@ import org.springframework.web.bind.annotation.*;
 import org.storck.filelocator.model.FileEntry;
 import org.storck.filelocator.repository.FileEntryRepository;
 import org.storck.filelocator.service.FileEntriesProcessor;
+import org.storck.filelocator.service.FileSearchService;
 import org.storck.filelocator.service.FileSystemTraverser;
 import org.storck.filelocator.service.ReactiveFileSystemTraverser;
 import org.storck.filelocator.service.SkipPathListGenerator;
 
 import java.util.Collection;
+import java.util.List;
 
 @Slf4j
 @Tag(name = "file-locator")
-@RestController("/files")
+@RestController("fileLocatorController")
 public class FileLocatorController {
 
     private final FileSystemTraverser fileSystemTraverser;
@@ -32,16 +34,20 @@ public class FileLocatorController {
 
     private final FileEntryRepository fileEntryRepository;
 
+    private final FileSearchService fileSearchService;
+
     public FileLocatorController(FileSystemTraverser fileSystemTraverser,
                                  ReactiveFileSystemTraverser reactiveFileSystemTraverser,
                                  SkipPathListGenerator skipPathListGenerator,
                                  FileEntriesProcessor fileEntriesProcessor,
-                                 FileEntryRepository fileEntryRepository) {
+                                 FileEntryRepository fileEntryRepository,
+                                 FileSearchService fileSearchService) {
         this.fileSystemTraverser = fileSystemTraverser;
         this.reactiveFileSystemTraverser = reactiveFileSystemTraverser;
         this.skipPathListGenerator = skipPathListGenerator;
         this.fileEntriesProcessor = fileEntriesProcessor;
         this.fileEntryRepository = fileEntryRepository;
+        this.fileSearchService = fileSearchService;
     }
 
     @Operation
@@ -52,7 +58,7 @@ public class FileLocatorController {
     }
 
     @Operation
-    @PutMapping(path = "/reacctive/updatedb")
+    @PutMapping(path = "/reactive/updatedb")
     ResponseEntity<String> updateFileDbReactive() {
         String result = reactiveFileSystemTraverser.updateFileDatabase();
         return new ResponseEntity<>("Database updated: " + result, HttpStatus.OK);
@@ -88,9 +94,10 @@ public class FileLocatorController {
     }
 
     @Operation
-    @GetMapping(path = "/regex/{exp}")
-    ResponseEntity<Collection<FileEntry>> findByRegex(@PathVariable String exp) {
-        Collection<FileEntry> results = fileEntryRepository.findByNameMatchesRegex(exp);
+    @GetMapping(path = "/regex/")
+    ResponseEntity<Collection<String>> findByRegex(@RequestParam String exp,
+                                                      @RequestParam(required = false) String startPath) {
+        List<String> results = fileSearchService.searchByRegex(startPath, exp);
         return new ResponseEntity<>(results, HttpStatus.ACCEPTED);
     }
 }

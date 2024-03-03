@@ -1,11 +1,15 @@
 arangodb:
   spring:
     data:
-      hosts: localhost:8529
+      hosts: arangodb:8529
       user: root
       password: test123
-      database: file-system-entries
+      database: file-entries
+
 file-locator:
+  nodes-collection: nodes
+  edges-collection: edges
+  graph-name: fileSystemGraph
   skip-paths: >-
     /afs,
     /dev,
@@ -24,3 +28,30 @@ file-locator:
     /boot,
     /proc,
     /run
+
+server:
+  error:
+    include-binding-errors: always
+    include-exception: true
+    include-message: always
+    include-stacktrace: always
+  servlet:
+    context-path: "/"
+  port: 8080
+
+springdoc:
+  show-actuator: true
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+
+spring:
+  application:
+    name: file-locator
+
+logging:
+  level:
+    root: info

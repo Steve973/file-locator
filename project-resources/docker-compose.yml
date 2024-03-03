@@ -1,0 +1,24 @@
+version: '3.8'
+services:
+  app:
+    image: docker.io/library/file-locator:1.0.0-SNAPSHOT
+    pull_policy: missing
+    container_name: file-locator
+    volumes:
+      - ./:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - arangodb
+
+  arangodb:
+    image: docker.io/library/arangodb:${ARANGODB_VERSION}
+    pull_policy: missing
+    container_name: arangodb
+    ports:
+      - "${ARANGO_PORT}:${ARANGO_PORT}"
+    volumes:
+      - ${ARANGO_DATA_DIR}:/var/lib/arangodb3
+      - ${ARANGO_APPS_DIR}:/var/lib/arangodb3-apps
+    environment:
+      - ARANGO_ROOT_PASSWORD=${ARANGO_ROOT_PASSWORD}

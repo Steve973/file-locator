@@ -16,13 +16,18 @@ import java.util.List;
 public class AppConfig {
 
     @Bean(name = "collectionName")
-    String collectionName() {
-        return System.getProperty("user.name");
+    String collectionName(@Value("${file-locator.nodes-collection}") String collection) {
+        return collection;
     }
 
     @Bean(name = "edgeCollectionName")
-    String edgeCollectionName() {
-        return "file-relation";
+    String edgeCollectionName(@Value("${file-locator.edges-collection}") String collection) {
+        return collection;
+    }
+
+    @Bean(name = "graphName")
+    String graphName(@Value("${file-locator.graph-name}") String graphName) {
+        return graphName;
     }
 
     @Bean(name = "skipPaths")
