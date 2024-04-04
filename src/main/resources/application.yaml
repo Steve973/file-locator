@@ -30,6 +30,8 @@ file-locator:
     /run
 
 server:
+  ssl:
+    enabled: false
   error:
     include-binding-errors: always
     include-exception: true

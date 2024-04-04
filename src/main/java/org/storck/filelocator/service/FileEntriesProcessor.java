@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
-import static org.storck.filelocator.service.FileSystemTraverser.ROOT_PARENT;
+import static org.storck.filelocator.service.ReactiveFileSystemTraverser.ROOT_PARENT;
 
 @Slf4j
 @Service

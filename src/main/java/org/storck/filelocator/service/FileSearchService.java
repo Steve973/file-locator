@@ -6,7 +6,6 @@ import org.storck.filelocator.model.FileEntry;
 import org.storck.filelocator.repository.FileEntryRepository;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 

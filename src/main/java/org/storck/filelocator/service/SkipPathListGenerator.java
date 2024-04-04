@@ -13,7 +13,10 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
@@ -23,30 +26,28 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 @Service
 public class SkipPathListGenerator implements FileVisitor<Path> {
 
-    List<String> pathsToSkip = new ArrayList<>();
-
     private final Collection<String> skipPaths;
+    private Queue<String> pathsToSkip;
 
     public SkipPathListGenerator(@Qualifier("skipPaths") final Collection<String> skipPaths) {
         this.skipPaths = skipPaths;
     }
 
     public List<String> generateSkipPathList() {
+        pathsToSkip = new ConcurrentLinkedQueue<>(skipPaths);
         try {
             log.info("Generating list of inaccessible paths to skip");
-            pathsToSkip.clear();
-            pathsToSkip.addAll(skipPaths);
             Files.walkFileTree(Path.of("/"), this);
         } catch (IOException e) {
             log.error("Error encountered when updating path skip list", e);
         }
-        pathsToSkip = pathsToSkip.stream()
-                .filter(p -> new File(p).isDirectory())
-                .sorted()
+        List<String> pts = pathsToSkip.stream()
                 .distinct()
-                .collect(Collectors.toList());
-        log.info("Skip paths contains {} items", pathsToSkip.size());
-        return pathsToSkip;
+                .sorted()
+                .toList();
+        log.info("Skip paths contains {} items", pts.size());
+        pathsToSkip = null;
+        return pts;
     }
 
     @Override
@@ -54,9 +55,12 @@ public class SkipPathListGenerator implements FileVisitor<Path> {
         try {
             return skipPaths.contains(path.toString()) ? SKIP_SUBTREE : CONTINUE;
         } catch (Exception e) {
-            pathsToSkip.add(path.toString());
-            return SKIP_SUBTREE;
+            log.debug("Error pre-visiting '{}' -- adding to skip paths", path.toAbsolutePath());
         }
+        if (path.toFile().isDirectory()) {
+            pathsToSkip.add(path.toString());
+        }
+        return SKIP_SUBTREE;
     }
 
     @Override

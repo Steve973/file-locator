@@ -15,6 +15,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
@@ -25,27 +27,26 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 @NoArgsConstructor
 public class AccessiblePathListGenerator implements FileVisitor<Path> {
 
-    List<Path> accessiblePaths = new ArrayList<>();
+    Queue<Path> accessiblePaths;
 
-    private final Collection<String> skipPaths = new ArrayList<>();
+    Collection<String> skipPaths;
 
     public List<Path> generateAccessiblePathsList(final Collection<String> skipPaths) {
-        this.skipPaths.clear();
-        this.skipPaths.addAll(skipPaths);
+        this.skipPaths = new ArrayList<>(skipPaths);
+        accessiblePaths = new ConcurrentLinkedQueue<>();
         try {
             log.info("Generating list of accessible paths");
-            accessiblePaths.clear();
             Files.walkFileTree(Path.of("/"), this);
         } catch (IOException e) {
             log.error("Error encountered when updating path skip list", e);
         }
-        accessiblePaths = accessiblePaths.stream()
-                .filter(p -> p.toFile().isDirectory())
-                .sorted()
+        List<Path> ap = accessiblePaths.stream()
                 .distinct()
-                .collect(Collectors.toList());
-        log.info("Accessible paths contains {} items", accessiblePaths.size());
-        return accessiblePaths;
+                .sorted()
+                .toList();
+        log.info("Accessible paths contains {} items", ap.size());
+        accessiblePaths = null;
+        return ap;
     }
 
     @Override
@@ -55,7 +56,7 @@ public class AccessiblePathListGenerator implements FileVisitor<Path> {
                 return SKIP_SUBTREE;
             } else {
                 File dir = path.toFile();
-                if (dir.canRead()) {
+                if (dir.canRead() && dir.isDirectory()) {
                     accessiblePaths.add(path);
                 }
                 return CONTINUE;
